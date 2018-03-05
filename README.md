@@ -6,7 +6,7 @@ Terraform module to provision an EC2 instance with an S3 backing store for runni
 
 ```
 module "minecraft" {
-  source = "../modules/terraform-aws-minecraft"
+  source = "git@github.com:darrelldavis/terraform-aws-minecraft.git?ref=master"
 
   key_name  = "my-key"
   bucket_id = "my-unique-bucket-name"
