@@ -5,3 +5,4 @@ output "public_ip" {
 output "id" {
   value = "${module.ec2_minecraft.id}"
 }
+

@@ -80,3 +80,4 @@ variable "allowed_cidrs" {
   description = "Allow these CIDR blocks to the server - default is the Universe"
   default     = "0.0.0.0/0"
 }
+

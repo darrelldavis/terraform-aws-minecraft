@@ -139,3 +139,4 @@ module "ec2_minecraft" {
   tags = "${var.tags}"
 
 }
+
