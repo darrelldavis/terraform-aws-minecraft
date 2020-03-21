@@ -39,7 +39,7 @@ variable "mc_root" {
 }
 
 variable "mc_version" {
-  description = "Which version of minecraft to install" 
+  description = "Which version of minecraft to install"
   default     = "1.12.2"
 }
 
