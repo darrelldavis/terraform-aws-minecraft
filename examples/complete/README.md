@@ -1,17 +1,21 @@
-# Example using all defaults
+# Complete Example
 
-Note: This will create resources that are not "free tier" eligible. 
+Note:
+ 
+* This will create resources that are not "free tier" eligible. 
+* If you change `mc_port` from the default value, you'll also need to manually edit the minecraft `server.properties` file on S3 or the EC2 instance
+
 
 ## Usage
 
-By default, this will use your "default" AWS credentials profile if installed. Otherwise, set your credentials:
+This will use your "default" AWS credentials profile if installed. Or explicitly set your credentials:
 
 ```
 export AWS_ACCESS_KEY_ID="anaccesskey"
 export AWS_SECRET_ACCESS_KEY="asecretkey"
 ```
 
-* Edit `region` in `main.tf` and then build:
+* Edit `region` and `bucket_name` in `main.tf` and then build:
 
 ```
 terraform init

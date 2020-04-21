@@ -1,4 +1,4 @@
-# Example using all defaults
+# Example using existing S3 bucket
 
 Note: This will create resources that are not "free tier" eligible. 
 
@@ -11,7 +11,7 @@ export AWS_ACCESS_KEY_ID="anaccesskey"
 export AWS_SECRET_ACCESS_KEY="asecretkey"
 ```
 
-* Edit `region` in `main.tf` and then build:
+* Edit `region` and `bucket_name` in `main.tf` and then build:
 
 ```
 terraform init
