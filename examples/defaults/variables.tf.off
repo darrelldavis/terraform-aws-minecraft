@@ -1,0 +1,35 @@
+// For provisioning and SSH access to your instance
+variable "ssh_pubkey_file" {
+  description = "Location of your SSH public key file"
+  default     = "~/.ssh/id_rsa.pub"
+}
+
+variable "name" {
+  description = "Name to use for servers, tags, etc (e.g. minecraft)"
+  default     = "mc"
+}
+
+variable "namespace" {
+  description = "Unique identifier for your site, org, etc - used in tags"
+  default     = "games"
+}
+
+variable "stage" {
+  description = "This environment (e.g. dev, staging, prod)"
+  default     = "prod"
+}
+
+variable "tags" {
+  description = "Any extra tags to assign to objects"
+  default     = {}
+}
+
+variable "cidr" {
+  description = "The CIDR block for the VPC"
+  default     = "10.10.0.0/16"
+}
+
+variable "public_subnets" {
+  description = "A list of public subnets inside the VPC"
+  default     = ["10.10.10.0/24"]
+}
