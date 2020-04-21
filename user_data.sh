@@ -118,8 +118,31 @@ SYSTEMD
 
 }
 
-MINECRAFT_JAR="minecraft_server.${mc_version}.jar"
+### Thanks to https://github.com/kenoir for pointing out that as of v15 (?) we have to
+### use the Mojang version_manifest.json to find java download location
+### See https://minecraft.gamepedia.com/Version_manifest.json
+download_minecraft_server() {
 
+  WGET=$(which wget)
+
+  # version_manifest.json lists available MC versions
+  $WGET -O ${mc_root}/version_manifest.json https://launchermeta.mojang.com/mc/game/version_manifest.json
+
+  # Find latest version number if user wants that version (the default)
+  if [[ "${mc_version}" == "latest" ]]; then
+    MC_VERS=$(jq -r '.["latest"]["release"]' ${mc_root}/version_manifest.json)
+  fi
+
+  # Index version_manifest.json by the version number and extract URL for the specific version manifest
+  VERSIONS_URL=$(jq -r '.["versions"][] | select(.id == "'"$MC_VERS"'") | .url' ${mc_root}/version_manifest.json)
+  # From specific version manifest extract the server JAR URL
+  SERVER_URL=$(curl -s $VERSIONS_URL | jq -r '.downloads | .server | .url')
+  # And finally download it to our local MC dir
+  $WGET -O ${mc_root}/$MINECRAFT_JAR $SERVER_URL
+
+}
+
+MINECRAFT_JAR="minecraft_server.jar"
 case $OS in
   Ubuntu*)
     ubuntu_linux_setup
@@ -135,27 +158,12 @@ esac
 # Create mc dir, sync S3 to it and download mc if not already there (from S3)
 /bin/mkdir -p ${mc_root}
 /usr/bin/aws s3 sync s3://${mc_bucket} ${mc_root}
-WGET=$(which wget)
 
-### Thanks to https://github.com/kenoir for pointing out that as of v15 (?) we have to
-### use the Mojang version_manifest.json to find java download location
-### See https://minecraft.gamepedia.com/Version_manifest.json
-
-# vesion_manifest.json lists available MC versions
-$WGET -O ${mc_root}/version_manifest.json https://launchermeta.mojang.com/mc/game/version_manifest.json
-
-# Find latest version number if user wants that version (the default)
-if [[ "$mc_version" == "latest" ]]; then
-  mc_version=$(jq -r '.["latest"]["release"]' ${mc_root}/version_manifest.json)
+# Download server if it doesn't exist on S3 already (existing from previous install)
+# To force a new server version, remove the server JAR from S3 bucket
+if [[ ! -e "${mc_root}/$MINECRAFT_JAR" ]]; then
+  download_minecraft_server
 fi
-MINECRAFT_JAR="minecraft_server.${mc_version}.jar"
-
-# Index version_manifest.json by the version number and extract URL for the specific version manifest
-VERSIONS_URL=$(jq -r '.["versions"][] | select(.id == "'"${mc_version}"'") | .url' ${mc_root}/version_manifest.json)
-# From specific version manifest extract the server JAR URL
-SERVER_URL=$(curl -s $VERSIONS_URL | jq -r '.downloads | .server | .url')
-# And finally download it to our local MC dir
-$WGET -O ${mc_root}/$MINECRAFT_JAR $SERVER_URL
 
 # Cron job to sync data to S3 every five mins
 /bin/cat <<CRON > /etc/cron.d/minecraft

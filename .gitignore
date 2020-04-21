@@ -4,3 +4,4 @@ terraform.tfstate
 terraform.tfvars
 local/*
 .DS_Store
+*.pem

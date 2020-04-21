@@ -1,4 +1,3 @@
-
 variable "vpc_id" {
   description = "VPC for security group"
   type        = string
@@ -39,7 +38,7 @@ variable "namespace" {
 variable "environment" {
   description = "Environment, e.g. 'prod', 'staging', 'dev', 'pre-prod', 'UAT'"
   type        = string
-  default     = "prod"
+  default     = "games"
 }
 
 variable "tags" {

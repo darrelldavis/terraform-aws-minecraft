@@ -67,9 +67,9 @@ resource "random_string" "s3" {
   upper   = false
 }
 
-data "aws_s3_bucket" "selected" {
-  bucket = local.bucket == "" ? var.bucket_name : local.bucket
-}
+#data "aws_s3_bucket" "selected" {
+#  bucket = local.bucket
+#}
 
 locals {
   using_existing_bucket = signum(length(var.bucket_name)) == 1
@@ -131,7 +131,7 @@ resource "aws_iam_role_policy" "mc_allow_ec2_to_s3" {
     {
       "Effect": "Allow",
       "Action": ["s3:ListBucket"],
-      "Resource": ["${data.aws_s3_bucket.selected.arn}"]
+      "Resource": ["arn:aws:s3:::${local.bucket}"]
     },
     {
       "Effect": "Allow",
@@ -140,7 +140,7 @@ resource "aws_iam_role_policy" "mc_allow_ec2_to_s3" {
         "s3:GetObject",
         "s3:DeleteObject"
       ],
-      "Resource": ["${data.aws_s3_bucket.selected.arn}/*"]
+      "Resource": ["arn:aws:s3:::${local.bucket}/*"]
     }
   ]
 }
