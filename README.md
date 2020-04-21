@@ -3,16 +3,20 @@
 Terraform module to provision an EC2 instance with an S3 backing store for running the [Minecraft](https://minecraft.net/en-us/) server.
 
 ## Usage
+Example from latest version, using default values for everything:
 
 ```
 module "minecraft" {
   source = "git@github.com:darrelldavis/terraform-aws-minecraft.git?ref=master"
+}
+```
+See [examples](./examples) directory for full example(s).
 
-  key_name  = "my-key"
-  bucket_id = "my-unique-bucket-name"
-  vpc_id    = "vpc-xxxxxxxx"
-  subnet_id = "subnet-xxxxxxxx"
+Example using original (legacy) version:
 
+```
+module "minecraft" {
+  source = "git@github.com:darrelldavis/terraform-aws-minecraft.git?ref=v1.0"
 }
 ```
 
@@ -22,26 +26,36 @@ module "minecraft" {
 |:--|:--|:--:|:--:|
 |allowed_cidrs|Allow these CIDR blocks to the server - default is the Universe|0.0.0.0/0||
 |ami|AMI to use for the instance, tested with Ubuntu and Amazon Linux 2 LTS|latest Ubuntu||
-|associate_public_ip_address|Toggle public IP|true||
-|bucket_id|Bucket name for persisting minecraft world||Yes|
-|instance_type|EC2 instance type/size|t2.medium (note: not free tier!)||
-|java_ms_mem|Java initial and minimum heap size|1G||
-|java_mx_mem|Java maximum heap size|1G||
-|key_name|EC2 key name for provisioning and access||Yes|
+|associate\_public\_ip\_address|Toggle public IP|true||
+|bucket_name|Bucket name for persisting minecraft world|generated name||
+|environment|Environment (for tags)|prod||
+|instance_type|EC2 instance type/size|t2.medium (NOTE: **NOT** free tier!)||
+|java\_ms\_mem|Java initial and minimum heap size|2G||
+|java\_mx\_mem|Java maximum heap size|2G||
+|key_name|EC2 key name for provisioning and access|generated||
 |name|Name to use for servers, tags, etc (e.g. minecraft)|mc||
-|mc_backup_freq|How often (mins) to sync to S3|5||
+|namespace|Namespace, which could be your organization name or abbreviation (for tags)|games||
+|mc\_backup\_freq|How often (mins) to sync to S3|5||
 |mc_port|TCP port for minecraft|25565||
 |mc_root|Where to install minecraft|`/home/minecraft`||
-|mc_version|Which version of minecraft to install|1.12.2||
-|subnet_id|VPC subnet id to place the instance||Yes|
-|tags|Any extra tags to assign to objects|||
-|vpc_id|VPC for security group||Yes|
+|mc_version|Which version of minecraft to install|latest||
+|subnet_id|VPC subnet id to place the instance|chosen from default VPC||
+|tags|Any extra tags to assign to objects|{}||
+|vpc_id|VPC for security group|default VPC||
 
 ## Outputs
 
 |Name|Description|
 |:--|:--|
+|ec2\_instance\_profile|EC2 instance profile|
+|id|EC2 instance ID|
+|private_key|The private key data in PEM format|
 |public_ip|Instance public IP|
+|public\_key|The public key data in PEM format|
+|public\_key\_openssh| The public key data in OpenSSH authorized_keys format|
+|subnet\_id|Subnet ID instance is connected to|
+|vpc_id|VPC ID for instance|
+|zzz\_ec2\_ssh|SSH command to connect to instance|
 
 ## Authors
 

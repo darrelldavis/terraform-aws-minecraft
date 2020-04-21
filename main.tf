@@ -1,8 +1,46 @@
 // This module creates a single EC2 instance for running a Minecraft server
 
-// Tested with this version of Terraform
-terraform {
-  required_version = ">= 0.12.21"
+// Default network
+data "aws_vpc" "default" {
+  default = true
+}
+
+data "aws_subnet_ids" "default" {
+  vpc_id = local.vpc_id
+}
+
+data "aws_caller_identity" "aws" {}
+
+locals {
+  vpc_id    = length(var.vpc_id) > 0 ? var.vpc_id : data.aws_vpc.default.id
+  subnet_id = length(var.subnet_id) > 0 ? var.subnet_id : sort(data.aws_subnet_ids.default.ids)[0]
+  tf_tags = {
+    Terraform = true,
+    By        = data.aws_caller_identity.aws.arn
+  }
+}
+
+// Keep labels, tags consistent
+module "label" {
+  source     = "git::https://github.com/cloudposse/terraform-null-label.git?ref=master"
+
+  namespace   = var.namespace
+  stage       = var.environment
+  name        = var.name
+  delimiter   = "-"
+  label_order = ["environment", "stage", "name", "attributes"]
+  tags        = merge(var.tags, local.tf_tags)
+}
+
+// Amazon Linux2 AMI - can switch this to default by editing the EC2 resource below
+data "aws_ami" "amazon-linux-2" {
+  most_recent = true
+
+  owners = ["amazon"]
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-hvm*"]
+  }
 }
 
 // Find latest Ubuntu AMI, use as default if no AMI specified
@@ -10,30 +48,57 @@ data "aws_ami" "ubuntu" {
   most_recent = true
 
   filter {
-    name = "name"
-    values = [
-    "ubuntu/images/hvm-ssd/ubuntu-xenial-16.04-amd64-server-*"]
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-bionic-18.04-amd64-server-*"]
   }
 
   filter {
-    name = "virtualization-type"
-    values = [
-    "hvm"]
+    name   = "virtualization-type"
+    values = ["hvm"]
   }
 
-  owners = [
-  "099720109477"]
-  # Canonical
+  owners = ["099720109477"] # Canonical
 }
 
-// S3 bucket info
-data "aws_s3_bucket" "mc" {
-  bucket = var.bucket_id
+// S3 bucket for persisting minecraft
+resource "random_string" "s3" {
+  length  = 12
+  special = false
+  upper   = false
+}
+
+data "aws_s3_bucket" "selected" {
+  bucket = local.bucket == "" ? var.bucket_name : local.bucket
+}
+
+locals {
+  using_existing_bucket = signum(length(var.bucket_name)) == 1
+
+  bucket = length(var.bucket_name) > 0 ? var.bucket_name : "${module.label.id}-${random_string.s3.result}"
+}
+
+module "s3" {
+  source = "terraform-aws-modules/s3-bucket/aws"
+
+  create_bucket = local.using_existing_bucket ? false : true
+
+  bucket = local.bucket
+  acl    = "private"
+
+  force_destroy = false
+
+  # S3 bucket-level Public Access Block configuration
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+
+  tags = module.label.tags
 }
 
 // IAM role for S3 access
 resource "aws_iam_role" "allow_s3" {
-  name               = "minecraft-ec2-to-s3"
+  name   = "${module.label.id}-allow-ec2-to-s3"
   assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -52,12 +117,12 @@ EOF
 }
 
 resource "aws_iam_instance_profile" "mc" {
-  name = "minecraft_instance_profile"
+  name = "${module.label.id}-instance-profile"
   role = aws_iam_role.allow_s3.name
 }
 
 resource "aws_iam_role_policy" "mc_allow_ec2_to_s3" {
-  name   = "mc_allow_ec2_to_s3"
+  name   = "${module.label.id}-allow-ec2-to-s3"
   role   = aws_iam_role.allow_s3.id
   policy = <<EOF
 {
@@ -66,7 +131,7 @@ resource "aws_iam_role_policy" "mc_allow_ec2_to_s3" {
     {
       "Effect": "Allow",
       "Action": ["s3:ListBucket"],
-      "Resource": ["${data.aws_s3_bucket.mc.arn}"]
+      "Resource": ["${data.aws_s3_bucket.selected.arn}"]
     },
     {
       "Effect": "Allow",
@@ -75,7 +140,7 @@ resource "aws_iam_role_policy" "mc_allow_ec2_to_s3" {
         "s3:GetObject",
         "s3:DeleteObject"
       ],
-      "Resource": ["${data.aws_s3_bucket.mc.arn}/*"]
+      "Resource": ["${data.aws_s3_bucket.selected.arn}/*"]
     }
   ]
 }
@@ -88,7 +153,7 @@ data "template_file" "user_data" {
 
   vars = {
     mc_root        = var.mc_root
-    mc_bucket      = var.bucket_id
+    mc_bucket      = local.bucket
     mc_backup_freq = var.mc_backup_freq
     mc_version     = var.mc_version
     java_mx_mem    = var.java_mx_mem
@@ -102,12 +167,10 @@ module "ec2_security_group" {
 
   name        = "${var.name}-ec2"
   description = "Allow SSH and TCP ${var.mc_port}"
-  vpc_id      = var.vpc_id
+  vpc_id      = local.vpc_id
 
-  ingress_cidr_blocks = [
-  var.allowed_cidrs]
-  ingress_rules = [
-  "ssh-tcp"]
+  ingress_cidr_blocks      = [ var.allowed_cidrs ]
+  ingress_rules            = [ "ssh-tcp"]
   ingress_with_cidr_blocks = [
     {
       from_port   = var.mc_port
@@ -117,10 +180,28 @@ module "ec2_security_group" {
       cidr_blocks = var.allowed_cidrs
     },
   ]
-  egress_rules = [
-  "all-all"]
+  egress_rules = ["all-all"]
 
-  tags = var.tags
+  tags = module.label.tags
+}
+
+// Create EC2 ssh key pair
+resource "tls_private_key" "ec2_ssh" {
+  count = length(var.key_name) > 0 ? 0 : 1
+
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+resource "aws_key_pair" "ec2_ssh" {
+  count = length(var.key_name) > 0 ? 0 : 1
+
+  key_name   = "${var.name}-ec2-ssh-key"
+  public_key = tls_private_key.ec2_ssh[0].public_key_openssh
+}
+
+locals {
+  _ssh_key_name = length(var.key_name) > 0 ? var.key_name : aws_key_pair.ec2_ssh[0].key_name
 }
 
 // EC2 instance for the server - tune instance_type to fit your performance and budget requirements
@@ -129,18 +210,17 @@ module "ec2_minecraft" {
   name   = "${var.name}-public"
 
   # instance
-  key_name             = var.key_name
+  key_name             = local._ssh_key_name
   ami                  = var.ami != "" ? var.ami : data.aws_ami.ubuntu.image_id
   instance_type        = var.instance_type
   iam_instance_profile = aws_iam_instance_profile.mc.id
   user_data            = data.template_file.user_data.rendered
 
   # network
-  subnet_id = var.subnet_id
-  vpc_security_group_ids = [
-  module.ec2_security_group.this_security_group_id]
+  subnet_id                   = local.subnet_id
+  vpc_security_group_ids      = [ module.ec2_security_group.this_security_group_id ]
   associate_public_ip_address = var.associate_public_ip_address
 
-  tags = var.tags
+  tags = module.label.tags
 }
 

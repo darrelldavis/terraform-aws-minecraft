@@ -1,83 +1,114 @@
 
-// Required
 variable "vpc_id" {
   description = "VPC for security group"
+  type        = string
+  default     = ""
 }
 
 variable "subnet_id" {
   description = "VPC subnet id to place the instance"
+  type        = string
+  default     = ""
 }
 
 variable "key_name" {
   description = "EC2 key name for provisioning and access"
+  type        = string
+  default     = ""
 }
 
-variable "bucket_id" {
+variable "bucket_name" {
   description = "Bucket name for persisting minecraft world"
+  type        = string
+  default     = ""
 }
 
-// For tags, names
+// For tags
 variable "name" {
   description = "Name to use for servers, tags, etc (e.g. minecraft)"
-  default     = "mc"
+  type        = string
+  default     = "minecraft"
+}
+
+variable "namespace" {
+  description = "Namespace, which could be your organization name or abbreviation, e.g. 'eg' or 'cp'"
+  type        = string
+  default     = "games"
+}
+
+variable "environment" {
+  description = "Environment, e.g. 'prod', 'staging', 'dev', 'pre-prod', 'UAT'"
+  type        = string
+  default     = "prod"
 }
 
 variable "tags" {
   description = "Any extra tags to assign to objects"
+  type        = map
   default     = {}
 }
 
 // Minecraft-specific defaults
 variable "mc_port" {
   description = "TCP port for minecraft"
-  default     = "25565"
+  type        = number
+  default     = 25565
 }
 
 variable "mc_root" {
   description = "Where to install minecraft on your instance"
+  type        = string
   default     = "/home/minecraft"
 }
 
 variable "mc_version" {
   description = "Which version of minecraft to install"
-  default     = "1.12.2"
+  type        = string
+  default     = "latest"
 }
 
 variable "mc_backup_freq" {
   description = "How often (mins) to sync to S3"
-  default     = "5"
+  type        = number
+  default     = 5
 }
 
 // You'll want to tune these next two based on the instance type
 variable "java_ms_mem" {
   description = "Java initial and minimum heap size"
+  type        = string
   default     = "2G"
 }
 
 variable "java_mx_mem" {
   description = "Java maximum heap size"
+  type        = string
   default     = "2G"
 }
 
 // Instance vars
 variable "associate_public_ip_address" {
   description = "By default, our server has a public IP"
+  type        = bool
   default     = true
 }
 
 variable "ami" {
   description = "AMI to use for the instance - will default to latest Ubuntu"
+  type        = string
   default     = ""
 }
 
 // https://aws.amazon.com/ec2/instance-types/
 variable "instance_type" {
   description = "EC2 instance type/size - the default is not part of free tier!"
+  type        = string
   default     = "t2.medium"
 }
 
 variable "allowed_cidrs" {
   description = "Allow these CIDR blocks to the server - default is the Universe"
+  type        = string
   default     = "0.0.0.0/0"
 }
 
