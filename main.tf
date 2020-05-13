@@ -85,7 +85,11 @@ module "s3" {
   bucket = local.bucket
   acl    = "private"
 
-  force_destroy = false
+  force_destroy = var.bucket_force_destroy
+
+  versioning = {
+    enabled = true
+  }
 
   # S3 bucket-level Public Access Block configuration
   block_public_acls       = true
@@ -156,6 +160,7 @@ data "template_file" "user_data" {
     mc_bucket      = local.bucket
     mc_backup_freq = var.mc_backup_freq
     mc_version     = var.mc_version
+    mc_type        = var.mc_type   
     java_mx_mem    = var.java_mx_mem
     java_ms_mem    = var.java_ms_mem
   }
