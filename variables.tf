@@ -22,6 +22,12 @@ variable "bucket_name" {
   default     = ""
 }
 
+variable "bucket_force_destroy" {
+  description = "A boolean that indicates all objects should be deleted from the bucket so that the bucket can be destroyed without error. This will destroy your minecraft world!"
+  type        = bool
+  default     = false
+}
+
 // For tags
 variable "name" {
   description = "Name to use for servers, tags, etc (e.g. minecraft)"
@@ -64,6 +70,12 @@ variable "mc_version" {
   description = "Which version of minecraft to install"
   type        = string
   default     = "latest"
+}
+
+variable "mc_type" {
+  description = "Type of minecraft distribution - snapshot or release"
+  type        = string
+  default     = "release"
 }
 
 variable "mc_backup_freq" {
