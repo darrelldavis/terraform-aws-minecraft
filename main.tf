@@ -88,7 +88,7 @@ module "s3" {
   force_destroy = var.bucket_force_destroy
 
   versioning = {
-    enabled = true
+    enabled = var.bucket_object_versioning
   }
 
   # S3 bucket-level Public Access Block configuration

@@ -28,6 +28,12 @@ variable "bucket_force_destroy" {
   default     = false
 }
 
+variable "bucket_object_versioning" {
+  description = "Enable object versioning (default = true). Note this may incur more cost."
+  type        = bool
+  default     = true
+}
+
 // For tags
 variable "name" {
   description = "Name to use for servers, tags, etc (e.g. minecraft)"
